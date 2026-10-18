@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}403 Forbidden{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+  <div class="col-md-6 text-center">
+    <div class="p-5 bg-white rounded-3 shadow-sm border">
+      <div class="text-danger mb-3" style="font-size: 4rem;">
+        <i class="bi bi-shield-x"></i>
+      </div>
+      <h2 class="fw-bold mb-2">403 - Access Denied</h2>
+      <p class="text-muted mb-4">You do not have the required administrative permissions to access this requested resource.</p>
+      <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary-custom px-4">
+        <i class="bi bi-house-door-fill me-1"></i> Return to Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

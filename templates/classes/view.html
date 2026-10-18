@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Class - {{ classroom.code }} {{ classroom.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary fs-6 font-monospace">{{ classroom.code }}</span>
+      <h2 class="fw-bold mb-0 text-dark">{{ classroom.name }}</h2>
+    </div>
+    <p class="text-muted small mb-0">
+      Academic Year: <strong>{{ classroom.academic_year }}</strong> &bull;
+      Faculty: <strong>{{ classroom.teacher.full_name if classroom.teacher else 'Unassigned' }}</strong> &bull;
+      Active Enrollment: <strong>{{ classroom.student_count }} Students</strong>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('attendance.take_attendance', class_id=classroom.id) }}" class="btn btn-primary-custom">
+      <i class="bi bi-calendar-check-fill me-1"></i> Take Attendance
+    </a>
+    <a href="{{ url_for('reports.class_report', class_id=classroom.id) }}" class="btn btn-outline-primary">
+      <i class="bi bi-bar-chart-fill me-1"></i> Class Report
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left Column: Student Roster & Enrollment -->
+  <div class="col-lg-7">
+    <div class="card card-custom h-100">
+      <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark">
+          <i class="bi bi-people-fill text-primary me-2"></i> Enrolled Student Roster ({{ classroom.student_count }})
+        </h5>
+        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#manageEnrollmentsModal">
+          <i class="bi bi-person-lines-fill me-1"></i> Manage Roster
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if classroom.enrolled_students %}
+                {% for stu in classroom.enrolled_students %}
+                  <tr>
+                    <td class="fw-bold font-monospace text-dark">{{ stu.student_id }}</td>
+                    <td>{{ stu.name }}</td>
+                    <td class="text-muted small">{{ stu.email }}</td>
+                    <td class="text-end">
+                      <a href="{{ url_for('students.view_student', id=stu.id) }}" class="btn btn-sm btn-light border" title="View Profile">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="4" class="text-center py-4 text-muted">
+                    No students currently enrolled in this class. Click "Manage Roster" to enroll students.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Recent Sessions in this Class -->
+  <div class="col-lg-5">
+    <div class="card card-custom h-100">
+      <div class="card-header bg-white border-bottom py-3">
+        <h5 class="fw-bold mb-0 text-dark">
+          <i class="bi bi-clock-history text-secondary me-2"></i> Attendance Sessions
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Session</th>
+                <th>Attendance</th>
+                <th class="text-end">View</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set sessions = classroom.attendance_sessions.order_by(classroom.attendance_sessions.model.session_date.desc()).limit(10).all() %}
+              {% if sessions %}
+                {% for s in sessions %}
+                  <tr>
+                    <td class="fw-semibold">{{ s.session_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ s.session_name }}</td>
+                    <td>
+                      <span class="badge badge-present">{{ s.attendance_percentage }}%</span>
+                    </td>
+                    <td class="text-end">
+                      <a href="{{ url_for('attendance.view_session', session_id=s.id) }}" class="btn btn-sm btn-light border">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="4" class="text-center py-4 text-muted">
+                    No attendance sessions logged yet.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Managing Student Enrollments -->
+<div class="modal fade" id="manageEnrollmentsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="bi bi-person-check-fill me-2"></i> Manage Class Enrollments</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('classes.assign_students', id=classroom.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body p-4">
+          <p class="small text-muted mb-3">Check or uncheck students to add or remove them from this class roster.</p>
+          <div style="max-height: 380px; overflow-y: auto;" class="p-2 border rounded bg-light">
+            {% if available_students %}
+              <div class="row g-2">
+                {% for stu in available_students %}
+                  <div class="col-md-6">
+                    <div class="form-check p-2 bg-white rounded border">
+                      <input class="form-check-input ms-0 me-2" type="checkbox" name="student_ids" value="{{ stu.id }}" id="modal_stu_{{ stu.id }}" {% if stu.id in enrolled_student_ids %}checked{% endif %}>
+                      <label class="form-check-label text-dark small" for="modal_stu_{{ stu.id }}">
+                        <strong>{{ stu.name }}</strong> ({{ stu.student_id }})
+                      </label>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-muted small mb-0">No active students available in the system.</p>
+            {% endif %}
+          </div>
+        </div>
+        <div class="modal-footer bg-light justify-content-between">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary-custom px-4">Save Enrollment Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

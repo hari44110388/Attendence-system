@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{% if student %}Edit Student - {{ student.name }}{% else %}Add New Student{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h2 class="fw-bold mb-1">{% if student %}Edit Student{% else %}Add New Student{% endif %}</h2>
+        <p class="text-muted small mb-0">Fill in student identification, contact info, and course enrollments.</p>
+      </div>
+      <a href="{{ url_for('students.list_students') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to List
+      </a>
+    </div>
+
+    <div class="card card-custom">
+      <div class="card-body p-4">
+        <form method="POST" action="{% if student %}{{ url_for('students.edit_student', id=student.id) }}{% else %}{{ url_for('students.create_student') }}{% endif %}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="row g-3">
+            <!-- Student ID -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small text-secondary">Student ID / Roll No <span class="text-danger">*</span></label>
+              <input type="text" name="student_id" class="form-control" placeholder="e.g. STU2026001" required value="{{ student.student_id if student else form_data.get('student_id', '') }}">
+              <div class="form-text">Must be a unique institutional registration code.</div>
+            </div>
+
+            <!-- Full Name -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small text-secondary">Full Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" placeholder="e.g. Aarav Patel" required value="{{ student.name if student else form_data.get('name', '') }}">
+            </div>
+
+            <!-- Email Address -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small text-secondary">Email Address <span class="text-danger">*</span></label>
+              <input type="email" name="email" class="form-control" placeholder="student@university.edu" required value="{{ student.email if student else form_data.get('email', '') }}">
+            </div>
+
+            <!-- Phone -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small text-secondary">Phone Number</label>
+              <input type="text" name="phone" class="form-control" placeholder="+91 98765 43210" value="{{ student.phone if student else form_data.get('phone', '') }}">
+            </div>
+
+            <!-- Status -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small text-secondary">Enrollment Status</label>
+              <select name="status" class="form-select">
+                <option value="active" {% if (student and student.status == 'active') or (not student and form_data.get('status') == 'active') %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if (student and student.status == 'inactive') or form_data.get('status') == 'inactive' %}selected{% endif %}>Inactive / Suspended</option>
+              </select>
+            </div>
+
+            <!-- Class Enrollments -->
+            <div class="col-12 mt-4">
+              <label class="form-label fw-semibold small text-secondary mb-2">Assign to Classes / Courses</label>
+              <div class="p-3 bg-light rounded border">
+                {% if classes %}
+                  <div class="row g-2">
+                    {% for c in classes %}
+                      {% set is_enrolled = (student and c in student.active_classes) %}
+                      <div class="col-sm-6">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" name="classes" value="{{ c.id }}" id="class_{{ c.id }}" {% if is_enrolled %}checked{% endif %}>
+                          <label class="form-check-label text-dark small" for="class_{{ c.id }}">
+                            <strong>{{ c.code }}</strong> - {{ c.name }}
+                          </label>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <p class="text-muted small mb-0">No classes found. You can assign classes later from the class view page.</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="d-flex justify-content-end gap-2">
+            <a href="{{ url_for('students.list_students') }}" class="btn btn-secondary px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary-custom px-4">
+              <i class="bi bi-save me-1"></i> Save Student Details
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

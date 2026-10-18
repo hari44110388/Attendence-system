@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Session Details - {{ session.session_date }} {{ session.classroom.code }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary fs-6">{{ session.classroom.code }}</span>
+      <h2 class="fw-bold mb-0 text-dark">{{ session.classroom.name }}</h2>
+    </div>
+    <p class="text-muted small mb-0">
+      Date: <strong>{{ session.session_date.strftime('%A, %d %B %Y') }}</strong> &bull;
+      Session: <strong>{{ session.session_name }}</strong> &bull;
+      Recorded By: <strong>{{ session.creator.full_name if session.creator else 'System' }}</strong>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('attendance.edit_session', session_id=session.id) }}" class="btn btn-outline-primary">
+      <i class="bi bi-pencil me-1"></i> Edit Records
+    </a>
+    <a href="{{ url_for('attendance.history') }}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Back to History
+    </a>
+  </div>
+</div>
+
+<!-- Summary Card -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-custom p-3 text-center">
+      <div class="text-muted small fw-semibold">Total Students</div>
+      <div class="fs-3 fw-bold text-dark">{{ session.records|length }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-custom p-3 text-center bg-success bg-opacity-10 border-success border-opacity-25">
+      <div class="text-success small fw-semibold">Present</div>
+      <div class="fs-3 fw-bold text-success">{{ session.summary.present }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-custom p-3 text-center bg-warning bg-opacity-10 border-warning border-opacity-25">
+      <div class="text-warning small fw-semibold">Late Arrivals</div>
+      <div class="fs-3 fw-bold text-warning">{{ session.summary.late }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-custom p-3 text-center bg-danger bg-opacity-10 border-danger border-opacity-25">
+      <div class="text-danger small fw-semibold">Absent</div>
+      <div class="fs-3 fw-bold text-danger">{{ session.summary.absent }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed Records Table -->
+<div class="card card-custom">
+  <div class="card-header bg-white border-bottom py-3">
+    <h5 class="fw-bold mb-0 text-dark">
+      <i class="bi bi-list-check text-primary me-2"></i> Student Roll Call Breakdown
+    </h5>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-custom table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Student ID</th>
+          <th>Student Name</th>
+          <th>Status</th>
+          <th>Remarks</th>
+          <th>Recorded At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in session.records %}
+          <tr>
+            <td class="text-muted">{{ loop.index }}</td>
+            <td class="fw-bold font-monospace">{{ r.student.student_id }}</td>
+            <td>
+              <a href="{{ url_for('students.view_student', id=r.student.id) }}" class="fw-semibold text-dark text-decoration-none">
+                {{ r.student.name }}
+              </a>
+            </td>
+            <td>
+              <span class="badge {% if r.status == 'present' %}badge-present{% elif r.status == 'late' %}badge-late{% else %}badge-absent{% endif %}">
+                {{ r.status|capitalize }}
+              </span>
+            </td>
+            <td>{{ r.remarks or '-' }}</td>
+            <td class="text-muted small">{{ r.recorded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Reports & Cloud Exports{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+  <div>
+    <h2 class="fw-bold mb-1">Reports & Cloud Analytics</h2>
+    <p class="text-muted small mb-0">Generate daily roll-call records, class compliance audits, and individual student profiles with Amazon S3 exports.</p>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- 1. Daily Attendance Report Card -->
+  <div class="col-md-4">
+    <div class="card card-custom h-100">
+      <div class="card-body p-4 d-flex flex-column">
+        <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-3 d-inline-block mb-3" style="width: fit-content;">
+          <i class="bi bi-calendar-check fs-2"></i>
+        </div>
+        <h5 class="fw-bold text-dark mb-2">Daily Attendance Report</h5>
+        <p class="text-muted small mb-4">
+          View all students across classes marked for any specific date with present, absent, and late tallies.
+        </p>
+        <div class="mt-auto">
+          <a href="{{ url_for('reports.daily') }}" class="btn btn-outline-primary w-100">
+            Open Daily Report <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Class-wise Report Card -->
+  <div class="col-md-4">
+    <div class="card card-custom h-100">
+      <div class="card-body p-4 d-flex flex-column">
+        <div class="bg-info bg-opacity-10 text-info p-3 rounded-3 d-inline-block mb-3" style="width: fit-content;">
+          <i class="bi bi-mortarboard fs-2"></i>
+        </div>
+        <h5 class="fw-bold text-dark mb-2">Class-wise Audit Report</h5>
+        <p class="text-muted small mb-4">
+          Review overall student attendance percentages for a class over customizable date ranges.
+        </p>
+        <div class="mt-auto">
+          <a href="{{ url_for('reports.class_report') }}" class="btn btn-outline-primary w-100">
+            Open Class Report <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Student-wise Report Card -->
+  <div class="col-md-4">
+    <div class="card card-custom h-100">
+      <div class="card-body p-4 d-flex flex-column">
+        <div class="bg-success bg-opacity-10 text-success p-3 rounded-3 d-inline-block mb-3" style="width: fit-content;">
+          <i class="bi bi-person-badge fs-2"></i>
+        </div>
+        <h5 class="fw-bold text-dark mb-2">Individual Student Report</h5>
+        <p class="text-muted small mb-4">
+          Detailed session-by-session historical breakdown for an individual student with compliance metrics.
+        </p>
+        <div class="mt-auto">
+          <a href="{{ url_for('reports.student_report') }}" class="btn btn-outline-primary w-100">
+            Open Student Report <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Architecture & Formula Explanatory Note -->
+<div class="card card-custom">
+  <div class="card-header bg-white border-bottom py-3">
+    <h5 class="fw-bold mb-0 text-dark">
+      <i class="bi bi-shield-check text-success me-2"></i> Reporting Specifications & Cloud Architecture
+    </h5>
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-4">
+      <div class="col-md-6 border-end">
+        <h6 class="fw-bold text-primary mb-2">Attendance Percentage Formula</h6>
+        <div class="p-3 bg-light rounded border font-monospace small mb-3">
+          Attendance Percentage = (Number of Present Sessions / Total Applicable Sessions) &times; 100
+        </div>
+        <ul class="text-muted small ps-3 mb-0">
+          <li><strong>Late Policy:</strong> Late arrivals are tracked distinctly and count as present toward total session attendance compliance.</li>
+          <li><strong>Applicable Sessions:</strong> Cancelled sessions or sessions conducted prior to a student's enrollment are excluded from the denominator.</li>
+          <li><strong>Division by Zero:</strong> When no sessions have taken place, the system handles the calculation safely and outputs <code>0.0%</code>.</li>
+        </ul>
+      </div>
+
+      <div class="col-md-6">
+        <h6 class="fw-bold text-info mb-2">Amazon S3 & Scheduled Lambda Integration</h6>
+        <p class="text-muted small mb-2">
+          Exports can be pushed to an encrypted Amazon S3 private bucket under the prefix:
+          <code>attendance-exports/YYYY/MM/</code>.
+        </p>
+        <ul class="text-muted small ps-3 mb-0">
+          <li><strong>Private & Secure:</strong> Reports are encrypted at rest with <code>AES256</code> server-side encryption.</li>
+          <li><strong>Presigned URLs:</strong> Downloads are authenticated using temporary presigned URLs expiring in 60 minutes.</li>
+          <li><strong>Automated Lambda:</strong> A monthly AWS Lambda function triggered by Amazon EventBridge queries RDS and auto-archives reports to S3.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+  <div>
+    <h2 class="fw-bold mb-1">Record Attendance</h2>
+    <p class="text-muted small mb-0">Select class, date, and session to mark student presence, absences, and late arrivals.</p>
+  </div>
+  <a href="{{ url_for('attendance.history') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-clock-history me-1"></i> Attendance History
+  </a>
+</div>
+
+<!-- Class & Session Selection Form -->
+<div class="card card-custom mb-4">
+  <div class="card-body p-4">
+    <form method="GET" action="{{ url_for('attendance.take_attendance') }}" class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label fw-semibold small text-secondary">1. Select Class / Course <span class="text-danger">*</span></label>
+        <select name="class_id" class="form-select" onchange="this.form.submit()" required>
+          <option value="">-- Choose a Class --</option>
+          {% for c in classes %}
+            <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>
+              {{ c.code }} - {{ c.name }} ({{ c.student_count }} enrolled)
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-semibold small text-secondary">2. Session Date</label>
+        <input type="date" name="date" class="form-control" value="{{ session_date.strftime('%Y-%m-%d') }}" onchange="this.form.submit()">
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-semibold small text-secondary">3. Session Name / Period</label>
+        <input type="text" name="session_name" class="form-control" value="{{ session_name }}" placeholder="e.g. Regular Session, Lab 1">
+      </div>
+
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100" title="Load Students">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if selected_class %}
+  {% if existing_session %}
+    <div class="alert alert-info d-flex align-items-center justify-content-between shadow-sm border-0 mb-4">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+        <div>
+          <strong>Note:</strong> Attendance for <strong>{{ selected_class.name }}</strong> on <strong>{{ session_date }} ({{ session_name }})</strong> was already recorded.
+          Submitting below will update the existing session records safely.
+        </div>
+      </div>
+      <a href="{{ url_for('attendance.view_session', session_id=existing_session.id) }}" class="btn btn-sm btn-outline-primary">
+        View Existing
+      </a>
+    </div>
+  {% endif %}
+
+  <!-- Student Attendance Roster Table Form -->
+  <form method="POST" action="{{ url_for('attendance.take_attendance') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="class_id" value="{{ selected_class.id }}">
+    <input type="hidden" name="session_date" value="{{ session_date.strftime('%Y-%m-%d') }}">
+    <input type="hidden" name="session_name" value="{{ session_name }}">
+
+    <div class="card card-custom mb-4">
+      <div class="card-header bg-white border-bottom py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+        <div>
+          <h5 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-person-check-fill text-success me-2"></i> {{ selected_class.name }} Roster ({{ students_data|length }} Students)
+          </h5>
+        </div>
+        <!-- Batch Shortcuts -->
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-success" id="markAllPresentBtn">
+            <i class="bi bi-check-all me-1"></i> All Present
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-warning" id="markAllLateBtn">
+            <i class="bi bi-clock me-1"></i> All Late
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-danger" id="markAllAbsentBtn">
+            <i class="bi bi-x-circle me-1"></i> All Absent
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-custom table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>Student ID</th>
+              <th>Student Name</th>
+              <th style="width: 250px;">Status</th>
+              <th>Remarks (Optional)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if students_data %}
+              {% for item in students_data %}
+                {% set stu = item.student %}
+                <tr>
+                  <td class="text-muted">{{ loop.index }}</td>
+                  <td class="fw-bold font-monospace text-dark">{{ stu.student_id }}</td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ stu.name }}</div>
+                    <small class="text-muted">{{ stu.email }}</small>
+                  </td>
+                  <td>
+                    <div class="attendance-toggle">
+                      <input type="radio" name="status_{{ stu.id }}" id="status_p_{{ stu.id }}" value="present" {% if item.status == 'present' %}checked{% endif %}>
+                      <label for="status_p_{{ stu.id }}"><i class="bi bi-check-lg me-1"></i> Present</label>
+
+                      <input type="radio" name="status_{{ stu.id }}" id="status_l_{{ stu.id }}" value="late" {% if item.status == 'late' %}checked{% endif %}>
+                      <label for="status_l_{{ stu.id }}"><i class="bi bi-clock me-1"></i> Late</label>
+
+                      <input type="radio" name="status_{{ stu.id }}" id="status_a_{{ stu.id }}" value="absent" {% if item.status == 'absent' %}checked{% endif %}>
+                      <label for="status_a_{{ stu.id }}"><i class="bi bi-x-lg me-1"></i> Absent</label>
+                    </div>
+                  </td>
+                  <td>
+                    <input type="text" name="remarks_{{ stu.id }}" class="form-control form-control-sm" placeholder="e.g. Excused, Medical, Quiz passed" value="{{ item.remarks }}">
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center py-5 text-muted">
+                  <i class="bi bi-people fs-2 d-block mb-2"></i>
+                  No active students enrolled in this class.
+                  <a href="{{ url_for('classes.view_class', id=selected_class.id) }}" class="d-block mt-2">Manage Student Roster</a>
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if students_data %}
+        <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+          <span class="text-muted small">
+            <i class="bi bi-shield-check text-primary me-1"></i> Submissions are atomically committed using database transactions.
+          </span>
+          <button type="submit" class="btn btn-primary-custom px-4 py-2">
+            <i class="bi bi-cloud-arrow-up-fill me-1"></i> {% if existing_session %}Update Attendance{% else %}Submit Attendance{% endif %}
+          </button>
+        </div>
+      {% endif %}
+    </div>
+  </form>
+{% else %}
+  <div class="card card-custom p-5 text-center text-muted">
+    <i class="bi bi-arrow-up-circle fs-1 text-primary d-block mb-3"></i>
+    <h5>Please select a class to begin</h5>
+    <p class="small text-muted mb-0">Choose from the dropdown above to load the student enrollment sheet.</p>
+  </div>
+{% endif %}
+{% endblock %}

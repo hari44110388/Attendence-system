@@ -1,0 +1,19 @@
+[Unit]
+Description=AttendanceSystem Gunicorn Application Daemon
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/var/www/AttendanceSystem
+Environment="PATH=/var/www/AttendanceSystem/.venv/bin"
+EnvironmentFile=/var/www/AttendanceSystem/.env
+ExecStart=/var/www/AttendanceSystem/.venv/bin/gunicorn --config deployment/gunicorn_config.py app:app
+
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/attendance_system/gunicorn_access.log
+StandardError=append:/var/log/attendance_system/gunicorn_error.log
+
+[Install]
+WantedBy=multi-user.target

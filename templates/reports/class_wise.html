@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Class-wise Attendance Audit{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+  <div>
+    <h2 class="fw-bold mb-1">Class-wise Attendance Report</h2>
+    <p class="text-muted small mb-0">Evaluate enrolled student attendance rates and compliance over custom date intervals.</p>
+  </div>
+  {% if data and selected_class_id %}
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('reports.export_csv', type='class', destination='browser', class_id=selected_class_id, from_date=from_date, to_date=to_date) }}" class="btn btn-outline-success">
+        <i class="bi bi-filetype-csv me-1"></i> Download CSV
+      </a>
+      <a href="{{ url_for('reports.export_csv', type='class', destination='s3', class_id=selected_class_id, from_date=from_date, to_date=to_date) }}" class="btn btn-outline-primary">
+        <i class="bi bi-cloud-arrow-up-fill me-1"></i> Export to S3
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="card card-custom mb-4">
+  <div class="card-body p-3">
+    <form method="GET" action="{{ url_for('reports.class_report') }}" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <label class="form-label small fw-semibold text-secondary mb-1">Select Class <span class="text-danger">*</span></label>
+        <select name="class_id" class="form-select" required>
+          <option value="">-- Choose Class --</option>
+          {% for c in classes %}
+            <option value="{{ c.id }}" {% if selected_class_id == c.id %}selected{% endif %}>
+              {{ c.code }} - {{ c.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold text-secondary mb-1">From Date</label>
+        <input type="date" name="from_date" value="{{ from_date }}" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold text-secondary mb-1">To Date</label>
+        <input type="date" name="to_date" value="{{ to_date }}" class="form-control">
+      </div>
+      <div class="col-md-1 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100" title="Generate Report">
+          <i class="bi bi-search"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if data %}
+  <div class="card card-custom">
+    <div class="card-header bg-white border-bottom py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+      <div>
+        <h5 class="fw-bold mb-0 text-dark">
+          <span class="badge bg-primary me-2 font-monospace">{{ data.class.code }}</span>
+          {{ data.class.name }}
+        </h5>
+        <small class="text-muted">Total Completed Sessions Conducted: <strong>{{ data.sessions_count }}</strong></small>
+      </div>
+      <div class="small text-muted fst-italic">
+        Formula: (Present / Total Sessions) &times; 100
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-custom table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Student ID</th>
+            <th>Student Name</th>
+            <th class="text-center">Total Sessions</th>
+            <th class="text-center">Present</th>
+            <th class="text-center">Late</th>
+            <th class="text-center">Absent</th>
+            <th style="min-width: 180px;">Attendance (%)</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if data.students %}
+            {% for item in data.students %}
+              <tr>
+                <td class="font-monospace fw-bold text-dark">{{ item.student.student_id }}</td>
+                <td>
+                  <a href="{{ url_for('students.view_student', id=item.student.id) }}" class="fw-semibold text-dark text-decoration-none">
+                    {{ item.student.name }}
+                  </a>
+                </td>
+                <td class="text-center">{{ item.total_sessions }}</td>
+                <td class="text-center">
+                  <span class="badge badge-present">{{ item.present }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge badge-late">{{ item.late }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge badge-absent">{{ item.absent }}</span>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height: 8px;">
+                      <div class="progress-bar {% if item.percentage >= 75 %}bg-success{% elif item.percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ item.percentage }}%;"></div>
+                    </div>
+                    <span class="fw-bold small {% if item.percentage < 75 %}text-danger{% else %}text-success{% endif %}">
+                      {{ item.percentage }}%
+                    </span>
+                  </div>
+                </td>
+                <td class="text-end">
+                  <a href="{{ url_for('reports.student_report', student_id=item.student.id) }}" class="btn btn-sm btn-light border" title="Student Detailed Report">
+                    <i class="bi bi-file-earmark-person"></i>
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                No students enrolled in this class.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <div class="card card-custom p-5 text-center text-muted">
+    <i class="bi bi-funnel fs-1 text-primary d-block mb-3"></i>
+    <h5>Select a class above to generate report</h5>
+    <p class="small text-muted mb-0">You can also specify an optional date interval to filter sessions.</p>
+  </div>
+{% endif %}
+{% endblock %}

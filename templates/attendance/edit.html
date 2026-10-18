@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Attendance - {{ session.session_date }} {{ session.classroom.code }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary fs-6">{{ session.classroom.code }}</span>
+      <h2 class="fw-bold mb-0 text-dark">Edit Session Attendance</h2>
+    </div>
+    <p class="text-muted small mb-0">
+      Class: <strong>{{ session.classroom.name }}</strong> &bull;
+      Date: <strong>{{ session.session_date.strftime('%d %B %Y') }}</strong> &bull;
+      Session: <strong>{{ session.session_name }}</strong>
+    </p>
+  </div>
+  <a href="{{ url_for('attendance.view_session', session_id=session.id) }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Cancel & View
+  </a>
+</div>
+
+<form method="POST" action="{{ url_for('attendance.edit_session', session_id=session.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="card card-custom mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+      <h5 class="fw-bold mb-0 text-dark">
+        <i class="bi bi-pencil-square text-primary me-2"></i> Update Student Records
+      </h5>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-success" id="markAllPresentBtn">All Present</button>
+        <button type="button" class="btn btn-sm btn-outline-warning" id="markAllLateBtn">All Late</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" id="markAllAbsentBtn">All Absent</button>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-custom table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th style="width: 50px;">#</th>
+            <th>Student ID</th>
+            <th>Student Name</th>
+            <th style="width: 250px;">Status</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in session.records %}
+            <tr>
+              <td class="text-muted">{{ loop.index }}</td>
+              <td class="fw-bold font-monospace">{{ r.student.student_id }}</td>
+              <td>{{ r.student.name }}</td>
+              <td>
+                <div class="attendance-toggle">
+                  <input type="radio" name="status_{{ r.student.id }}" id="edit_p_{{ r.student.id }}" value="present" {% if r.status == 'present' %}checked{% endif %}>
+                  <label for="edit_p_{{ r.student.id }}">Present</label>
+
+                  <input type="radio" name="status_{{ r.student.id }}" id="edit_l_{{ r.student.id }}" value="late" {% if r.status == 'late' %}checked{% endif %}>
+                  <label for="edit_l_{{ r.student.id }}">Late</label>
+
+                  <input type="radio" name="status_{{ r.student.id }}" id="edit_a_{{ r.student.id }}" value="absent" {% if r.status == 'absent' %}checked{% endif %}>
+                  <label for="edit_a_{{ r.student.id }}">Absent</label>
+                </div>
+              </td>
+              <td>
+                <input type="text" name="remarks_{{ r.student.id }}" class="form-control form-control-sm" value="{{ r.remarks or '' }}" placeholder="Remarks">
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-footer bg-white border-top py-3 d-flex justify-content-end gap-2">
+      <a href="{{ url_for('attendance.view_session', session_id=session.id) }}" class="btn btn-secondary px-4">Cancel</a>
+      <button type="submit" class="btn btn-primary-custom px-4">
+        <i class="bi bi-save me-1"></i> Save Updated Records
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}
